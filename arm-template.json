@@ -1,0 +1,52 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appServicePlanName": { "type": "string" },
+    "webAppName": { "type": "string" }
+  },
+  "variables": {
+    "port": 9001
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2021-01-01",
+      "name": "[parameters('appServicePlanName')]",
+      "location": "[resourceGroup().location]",
+      "kind": "Linux",
+      "properties": {
+        "reserved": true
+      },
+      "sku": { "name": "F1" }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2021-01-01",
+      "name": "[parameters('webAppName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
+        "httpsOnly": true,
+        "clientAffinityEnabled": false,
+        "siteConfig": {
+          "linuxFxVersion": "DOCKER|patrickhulce/lhci-server:latest",
+          "appSettings": [
+            {
+              "name": "DOCKER_REGISTRY_SERVER_URL",
+              "value": "https://docker.io"
+            },
+            { "name": "LHCI_NO_LIGHTHOUSERC", "value": "1" },
+            { "name": "LHCI_PORT", "value": "[variables('port')]" },
+            { "name": "LHCI_STORAGE__SQL_DATABASE_PATH", "value": "./lhci.db" },
+            { "name": "LHCI_STORAGE__SQL_DIALECT", "value": "sqlite" },
+            { "name": "WEBSITES_PORT", "value": "[variables('port')]" }
+          ]
+        }
+      }
+    }
+  ]
+}
